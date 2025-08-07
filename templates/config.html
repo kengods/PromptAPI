@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}配置管理 - API配置管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>配置管理</h1>
+    <a href="{{ url_for('add_config') }}" class="btn btn-primary">添加新配置</a>
+</div>
+
+{% if configs %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>名称</th>
+                <th>路径</th>
+                <th>描述</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, config in configs.items() %}
+            <tr>
+                <td>{{ config.name }}</td>
+                <td><code>{{ config.path }}</code></td>
+                <td>{{ config.description }}</td>
+                <td>
+                    <span class="badge bg-{{ 'success' if config.enabled else 'secondary'}}">
+                        {{ '启用' if config.enabled else '禁用' }}
+                    </span>
+                </td>
+                <td>{{ config.created_at[:19] if config.created_at else '-' }}</td>
+                <td>
+                    <a href="{{ url_for('edit_config', name=name) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig('{{ name }}')">删除</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <h4>暂无配置</h4>
+    <p>您还没有创建任何API配置。<a href="{{ url_for('add_config') }}">点击这里添加第一个配置</a></p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteConfig(name) {
+    if (confirm('确定要删除配置 "' + name + '" 吗？')) {
+        fetch('/config/delete/' + name, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('删除失败：' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

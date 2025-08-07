@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - API配置管理系统{% endblock %}
+
+{% block content %}
+<h1>API配置管理系统</h1>
+<p class="lead">欢迎使用API配置管理系统，您可以在这里管理和测试您的API接口。</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>系统功能</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">✅ 动态配置API接口</li>
+                    <li class="list-group-item">✅ 自定义系统提示词</li>
+                    <li class="list-group-item">✅ 在线测试接口</li>
+                    <li class="list-group-item">❌ 配置导入导出</li>
+                    <li class="list-group-item">✅ 接口启用/禁用</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>当前配置 ({{ configs|length }}个)</h5>
+            </div>
+            <div class="card-body">
+                {% if configs %}
+                    <div class="list-group">
+                        {% for name, config in configs.items() %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ config.name }}</h6>
+                                <small class="text-muted">{{ config.description }}</small>
+                            </div>
+                            <span class="badge bg-{{ 'success' if config.enabled else 'secondary' }} rounded-pill">
+                                {{ '启用' if config.enabled else '禁用' }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">暂无配置，<a href="{{ url_for('add_config') }}">点击添加</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

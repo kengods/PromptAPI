@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}编辑配置 - API配置管理系统{% endblock %}
+
+{% block content %}
+<h1>编辑配置: {{ name }}</h1>
+
+<form id="configForm">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="name" class="form-label">配置名称 *</label>
+                <input type="text" class="form-control" id="name" value="{{ config.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="path" class="form-label">API路径 *</label>
+                <input type="text" class="form-control" id="path" value="{{ config.path }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">描述</label>
+                <textarea class="form-control" id="description" rows="3">{{ config.description }}</textarea>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="enabled" {{ 'checked' if config.enabled else '' }}>
+                    <label class="form-check-label" for="enabled">
+                        启用此配置
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="system_prompt" class="form-label">系统提示词 *</label>
+                <textarea class="form-control" id="system_prompt" rows="10" required>{{ config.system_prompt }}</textarea>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">更新配置</button>
+        <a href="{{ url_for('config_page') }}" class="btn btn-secondary">取消</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        path: document.getElementById('path').value,
+        description: document.getElementById('description').value,
+        system_prompt: document.getElementById('system_prompt').value,
+        enabled: document.getElementById('enabled').checked
+    };
+    
+    fetch('/config/edit/{{ name }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('配置更新成功！');
+            window.location.href = '/config';
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('更新失败：' + error);
+    });
+});
+</script>
+{% endblock %}

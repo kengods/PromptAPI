@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}系统配置{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>系统配置</h2>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>OpenAI API 配置</h5>
+                </div>
+                <div class="card-body">
+                    <form id="systemConfigForm">
+                        <div class="mb-3">
+                            <label for="openai_api_url" class="form-label">API URL</label>
+                            <input type="text" class="form-control" id="openai_api_url" value="{{ config.openai_api_url }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="openai_api_key" class="form-label">API Key</label>
+                            <input type="text" class="form-control" id="openai_api_key" value="{{ config.openai_api_key }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="model_name" class="form-label">模型名称</label>
+                            <input type="text" class="form-control" id="model_name" value="{{ config.model_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="temperature" class="form-label">Temperature</label>
+                            <input type="number" class="form-control" id="temperature" value="{{ config.temperature }}" step="0.1" min="0" max="2" required>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>MongoDB 日志配置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="log_enabled" {{ 'checked' if config.log_enabled else '' }}>
+                            <label class="form-check-label" for="log_enabled">
+                                启用日志记录
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mongodb_url" class="form-label">MongoDB URL</label>
+                        <input type="text" class="form-control" id="mongodb_url" value="{{ config.mongodb_url or 'mongodb://localhost:27017' }}" required>
+                        <div class="form-text">例如: mongodb://localhost:27017 或 mongodb://username:password@host:port</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mongodb_database" class="form-label">数据库名称</label>
+                        <input type="text" class="form-control" id="mongodb_database" value="{{ config.mongodb_database or 'api_logs' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mongodb_collection" class="form-label">集合名称</label>
+                        <input type="text" class="form-control" id="mongodb_collection" value="{{ config.mongodb_collection or 'call_logs' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-info" onclick="testMongoDB()">测试MongoDB连接</button>
+                        <span id="mongoTestResult" class="ms-2"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary" onclick="updateConfig()">保存配置</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">返回</a>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6>配置信息</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>最后更新:</strong><br>{{ config.updated_at }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateConfig() {
+    const config = {
+        openai_api_url: document.getElementById('openai_api_url').value,
+        openai_api_key: document.getElementById('openai_api_key').value,
+        model_name: document.getElementById('model_name').value,
+        temperature: parseFloat(document.getElementById('temperature').value),
+        log_enabled: document.getElementById('log_enabled').checked,
+        mongodb_url: document.getElementById('mongodb_url').value,
+        mongodb_database: document.getElementById('mongodb_database').value,
+        mongodb_collection: document.getElementById('mongodb_collection').value
+    };
+    
+    fetch('/system-config/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('配置更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('请求失败: ' + error);
+    });
+}
+
+function testMongoDB() {
+    const resultSpan = document.getElementById('mongoTestResult');
+    resultSpan.innerHTML = '<span class="text-info">测试中...</span>';
+    
+    fetch('/api/test-mongodb')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultSpan.innerHTML = '<span class="text-success">✓ 连接成功</span>';
+        } else {
+            resultSpan.innerHTML = '<span class="text-danger">✗ 连接失败: ' + data.message + '</span>';
+        }
+    })
+    .catch(error => {
+        resultSpan.innerHTML = '<span class="text-danger">✗ 测试失败: ' + error + '</span>';
+    });
+}
+</script>
+{% endblock %}

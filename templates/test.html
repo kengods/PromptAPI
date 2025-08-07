@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}接口测试 - API配置管理系统{% endblock %}
+
+{% block content %}
+<h1>接口测试</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>测试接口</h5>
+            </div>
+            <div class="card-body">
+                <form id="testForm">
+                    <div class="mb-3">
+                        <label for="configSelect" class="form-label">选择接口 *</label>
+                        <select class="form-select" id="configSelect" required>
+                            <option value="">请选择接口</option>
+                            {% for name, config in configs.items() %}
+                                {% if config.enabled %}
+                                <option value="{{ name }}">{{ config.name }} ({{ config.path }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="testInput" class="form-label">测试输入 *</label>
+                        <textarea class="form-control" id="testInput" rows="4" placeholder="请输入要测试的文本..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="testBtn">测试接口</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>测试结果</h5>
+            </div>
+            <div class="card-body">
+                <div id="loading" class="text-center" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>正在处理请求...</p>
+                </div>
+                <div id="result" style="display: none;">
+                    <h6>响应结果：</h6>
+                    <pre id="resultContent" class="bg-light p-3 rounded"></pre>
+                </div>
+                <div id="error" style="display: none;">
+                    <div class="alert alert-danger">
+                        <h6>错误信息：</h6>
+                        <p id="errorContent"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>测试历史</h5>
+            </div>
+            <div class="card-body">
+                <div id="testHistory">
+                    <p class="text-muted">暂无测试记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let testHistory = [];
+
+document.getElementById('testForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const configName = document.getElementById('configSelect').value;
+    const testInput = document.getElementById('testInput').value;
+    
+    if (!configName || !testInput) {
+        alert('请选择接口并输入测试文本');
+        return;
+    }
+    
+    // 显示加载状态
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('testBtn').disabled = true;
+    
+    fetch('/api/' + configName, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: testInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('testBtn').disabled = false;
+        
+        if (data.error) {
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorContent').textContent = data.error;
+        } else {
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+            
+            // 添加到测试历史
+            addToHistory(configName, testInput, data);
+        }
+    })
+    .catch(error => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('testBtn').disabled = false;
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('errorContent').textContent = '请求失败: ' + error;
+    });
+});
+
+function addToHistory(configName, input, result) {
+    const historyItem = {
+        timestamp: new Date().toLocaleString(),
+        configName: configName,
+        input: input,
+        result: result
+    };
+    
+    testHistory.unshift(historyItem);
+    if (testHistory.length > 10) {
+        testHistory = testHistory.slice(0, 10);
+    }
+    
+    updateHistoryDisplay();
+}
+
+function updateHistoryDisplay() {
+    const historyDiv = document.getElementById('testHistory');
+    
+    if (testHistory.length === 0) {
+        historyDiv.innerHTML = '<p class="text-muted">暂无测试记录</p>';
+        return;
+    }
+    
+    let html = '';
+    testHistory.forEach((item, index) => {
+        html += `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between">
+                    <strong>${item.configName}</strong>
+                    <small class="text-muted">${item.timestamp}</small>
+                </div>
+                <div class="mt-1">
+                    <strong>输入:</strong> ${item.input}
+                </div>
+                <div class="mt-1">
+                    <strong>输出:</strong> <code>${JSON.stringify(item.result)}</code>
+                </div>
+            </div>
+        `;
+    });
+    
+    historyDiv.innerHTML = html;
+}
+</script>
+{% endblock %}
